@@ -29,13 +29,31 @@ class GraphicsEngine:
         self.camera = camera.Camera(self.WIN_SIZE)
         self.light = light.Light()
 
-        self.model_1 = model.Model(self.gl_context, self.camera.projection_matrix, 
-        self.camera.view_matrix, self.light)
+        #=====================================================================
+        self.shader = model.Shaders(self.gl_context)
+        self.shader.read_from_file("default")
+
+        self.vertexes = model.Vertexes(self.gl_context)    
+
+        self.texture = model.Texture(self.gl_context)
+        self.texture.load_texture("textures/test.png")
+
+        self.mesh = model.Mesh(self.gl_context, vertex=self.vertexes, 
+        texture=self.texture, shaders=self.shader)
+        self.mesh.create_objects_shader()
+
+        self.scene_object_1 = model.SceneObject(self.mesh, self.light)
+        #=====================================================================
+        # self.model_1 = model.Model(self.gl_context, self.camera.projection_matrix, 
+        # self.camera.view_matrix, self.light)
+
+
 
     def check_events(self):
         for event in pg.event.get():
             if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
-                self.model_1.destroy()
+                # self.model_1.destroy()
+                self.mesh.delete()
                 pg.quit()
                 sys.exit()
 
@@ -43,7 +61,9 @@ class GraphicsEngine:
         #resset screen
         self.gl_context.clear(color=(0.08, 0.16, 0.18))
         #swap buffers in bouble buffer rendering
-        self.model_1.render(self.time, self.camera)
+        # self.model_1.render(self.time, self.camera)
+        self.scene_object_1.render(self.time, self.light, self.camera)
+        
         pg.display.flip()
 
     def get_time(self):

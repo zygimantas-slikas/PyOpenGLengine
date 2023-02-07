@@ -5,7 +5,7 @@ import pygame as pg
 
 class Camera:
     def __init__(self, window_size:tuple[int,int], FOV=70, NEAR=0.1, FAR=100,
-        position=(0,1,5), yaw=-90, pitch=0):
+        position=(0,1,5), yaw=-90.0, pitch=0.0):
         self.FOV = FOV
         self.NEAR = NEAR
         self.FAR = FAR
@@ -18,7 +18,7 @@ class Camera:
         self.movement_speed = 0.01
         self.yaw = yaw
         self.pitch = pitch
-        self.mouse_sensitivity = 0.005
+        self.mouse_sensitivity = 0.1
         self.view_matrix = self.get_view_matrix(self.position, self.up)
         self.projection_matrix = self.get_projection_matrix()
 
@@ -30,19 +30,25 @@ class Camera:
 
     def move(self, delta_time):
         distance = self.movement_speed * delta_time
+        forward = self.forward
+        up = self.up
+        right = self.right
+        # forward = glm.vec3(0, 0, -1)
+        # up = glm.vec3(0, 1, 0)
+        # right = glm.vec3(1, 0, 0)
         keys = pg.key.get_pressed()
         if keys[pg.K_w]:
-            self.position += self.forward * distance
+            self.position += forward * distance
         if keys[pg.K_s]:
-            self.position -= self.forward * distance
+            self.position -= forward * distance
         if keys[pg.K_d]:
-            self.position += self.right * distance
+            self.position += right * distance
         if keys[pg.K_a]:
-            self.position -= self.right * distance
+            self.position -= right * distance
         if keys[pg.K_LSHIFT]:
-            self.position -= self.up * distance
+            self.position -= up * distance
         if keys[pg.K_SPACE]:
-            self.position += self.up * distance
+            self.position += up * distance
 
     def get_mouse_rotation(self):
         relative_x, relative_y = pg.mouse.get_rel()
@@ -54,9 +60,9 @@ class Camera:
         yaw = glm.radians(self.yaw)
         pitch = glm.radians(self.pitch)
 
-        self.forward.x = glm.cos(self.pitch) * glm.cos(self.yaw)
-        self.forward.y = glm.sin(self.pitch)
-        self.forward.z = glm.cos(self.pitch) * glm.sin(self.yaw)
+        self.forward.x = glm.cos(pitch) * glm.cos(yaw)
+        self.forward.y = glm.sin(pitch)
+        self.forward.z = glm.cos(pitch) * glm.sin(yaw)
 
         self.forward = glm.normalize(self.forward)
         self.right = glm.normalize(glm.cross(self.forward, glm.vec3(0,1,0)))
