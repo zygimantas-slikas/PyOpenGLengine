@@ -3,6 +3,7 @@ import moderngl as mgl
 import glm
 import pygame as pg
 
+
 class Camera:
     def __init__(self, window_size:tuple[int,int], FOV=70, NEAR=0.1, FAR=100,
         position=(0,1,5), yaw=-90.0, pitch=0.0):
@@ -33,9 +34,6 @@ class Camera:
         forward = self.forward
         up = self.up
         right = self.right
-        # forward = glm.vec3(0, 0, -1)
-        # up = glm.vec3(0, 1, 0)
-        # right = glm.vec3(1, 0, 0)
         keys = pg.key.get_pressed()
         if keys[pg.K_w]:
             self.position += forward * distance

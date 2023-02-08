@@ -1,11 +1,9 @@
 import sys
 import numpy as np
 import pygame as pg
-from pygame.locals import *
+import pygame.locals
 import moderngl as mgl
-import model
-import camera
-import light
+import engine
 
 
 class GraphicsEngine:
@@ -26,23 +24,22 @@ class GraphicsEngine:
         self.time = 0
         self.delta_time = 0
         
-        self.camera = camera.Camera(self.WIN_SIZE)
-        self.light = light.Light()
+        self.camera = engine.Camera(self.WIN_SIZE)
+        self.light = engine.Light()
 
         #=====================================================================
-        self.shader = model.Shaders(self.gl_context)
+        self.shader = engine.Shaders(self.gl_context)
         self.shader.read_from_file("default")
 
-        self.vertexes = model.Vertexes(self.gl_context)    
+        self.vertexes = engine.Vertexes(self.gl_context)    
 
-        self.texture = model.Texture(self.gl_context)
-        self.texture.load_texture("textures/test.png")
+        self.texture = engine.Texture(self.gl_context, file_path="textures/test.png")
 
-        self.mesh = model.Mesh(self.gl_context, vertex=self.vertexes, 
+        self.mesh = engine.Mesh(self.gl_context, vertex=self.vertexes, 
         texture=self.texture, shaders=self.shader)
         self.mesh.create_objects_shader()
 
-        self.scene_object_1 = model.SceneObject(self.mesh, self.light)
+        self.scene_object_1 = engine.SceneObject(self.mesh, self.light)
         #=====================================================================
         # self.model_1 = model.Model(self.gl_context, self.camera.projection_matrix, 
         # self.camera.view_matrix, self.light)
