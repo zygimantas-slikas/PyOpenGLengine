@@ -14,9 +14,8 @@ class Mesh:
         self.texture:Texture = texture
         self.shaders:Shaders = shaders
         self.mesh_in_shader:mgl.VertexArray = None
-        self.texture.texture_data.use(location = 0)
 
-    def create_objects_shader(self)->mgl.VertexArray:
+    def create_object(self)->mgl.VertexArray:
         if (self.vertex.buffer is not None
             and self.texture.texture_data is not None
             and self.shaders.program is not None):
@@ -30,14 +29,10 @@ class Mesh:
     def delete(self):
         """Deallocates resources from OpenGL."""
         self.mesh_in_shader.release()
-        self.vertex.delete()
-        self.shaders.delete()
 
-    def read_shaders(self, file_name:str)->mgl.Program:
-        ...
+    def render(self):
+        self.shaders.use_texture(self.texture.index)
+        self.mesh_in_shader.render()
 
     def load_object_from_file(self, file_anme:str)->list:
-        ...
-
-    def generate_polygons(self, vertex_locations:np.ndarray, texture_locations:np.ndarray):
         ...

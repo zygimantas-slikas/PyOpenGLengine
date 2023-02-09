@@ -6,18 +6,17 @@ class Vertexes:
     def __init__(self, gl_context:mgl.Context):
         self.gl_context:mgl.Context = gl_context
         self.model_data:np.ndarray = None
-        self.model_data = self.set_model_data()
-        self.buffer = self.allocate_vertex_buffer(self.model_data)
+        self.buffer:mgl.Buffer = None
 
     def allocate_vertex_buffer(self, vertex_data:np.ndarray)->mgl.Buffer:
-        vertex_buffer = self.gl_context.buffer(vertex_data)
-        return vertex_buffer
+        self.buffer = self.gl_context.buffer(vertex_data)
+        return self.buffer
 
     def delete(self):
         """Deallocates resources from OpenGL."""
         self.buffer.release()
 
-    def set_model_data(self):
+    def get_cube_model(self):
         vertices = [(-1,-1,1), (1,-1,1), (1,1,1), (-1,1,1),
                     (-1,1,-1), (-1,-1,-1), (1,-1,-1), (1,1,-1)]
         indices = [(0,2,3), (0,1,2),
@@ -57,3 +56,4 @@ class Vertexes:
         vertex_data = np.hstack([normals, vertex_data])
         model_data = np.hstack([texture_coordinates_data, vertex_data])
         return model_data
+

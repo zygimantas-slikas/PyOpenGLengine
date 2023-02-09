@@ -3,11 +3,13 @@ import moderngl as mgl
 import pygame as pg
 
 class Texture:
+    created_textures_count = 0
     def __init__(self, gl_context:mgl.Context, file_path:str=None, fill_color:str=None):
         self.gl_context:mgl.Context = gl_context
-        self.texture_data:pg.Surface = None
+        self.texture_data:mgl.Texture = None
         self.file_path:str = None
         self.fill_color:str = None
+        self.index:int = None
         if file_path is not None:
             self.file_apth = file_path
             self.load_texture(file_path)
@@ -25,4 +27,7 @@ class Texture:
         texture = self.gl_context.texture(size = texture.get_size(), components=3,
         data=pg.image.tostring(texture, 'RGB'))
         self.texture_data = texture
+        self.texture_data.use(location = Texture.created_textures_count)
+        self.index = Texture.created_textures_count
+        Texture.created_textures_count += 1
         return texture

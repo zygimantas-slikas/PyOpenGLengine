@@ -24,3 +24,6 @@ class Shaders:
         self.program = program
         self.program['u_texture_0'] = 0
         return program
+
+    def use_texture(self, texture_index:int):
+        self.program['u_texture_0'] = texture_index
