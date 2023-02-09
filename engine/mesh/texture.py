@@ -27,6 +27,9 @@ class Texture:
         texture = self.gl_context.texture(size = texture.get_size(), components=3,
         data=pg.image.tostring(texture, 'RGB'))
         self.texture_data = texture
+        texture.filter = (mgl.LINEAR_MIPMAP_LINEAR, mgl.LINEAR)
+        texture.build_mipmaps()
+        texture.anisotropy = 32.0
         self.texture_data.use(location = Texture.created_textures_count)
         self.index = Texture.created_textures_count
         Texture.created_textures_count += 1
