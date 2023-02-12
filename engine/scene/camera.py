@@ -22,12 +22,15 @@ class Camera:
         self.mouse_sensitivity = 0.1
         self.view_matrix = self.get_view_matrix(self.position, self.up)
         self.projection_matrix = self.get_projection_matrix()
+        self.locked:bool = False
 
-    def update(self, delta_time):
-        self.move(delta_time)
-        self.get_mouse_rotation()
-        self.update_camera_vectors()
+    def update(self, delta_time)->glm.mat4:
+        if not self.locked:
+            self.move(delta_time)
+            self.get_mouse_rotation()
+            self.update_camera_vectors()
         self.view_matrix = self.get_view_matrix(self.position, self.up)
+        return self.view_matrix
 
     def move(self, delta_time):
         distance = self.movement_speed * delta_time

@@ -26,7 +26,7 @@ class GraphicsEngine:
         
         self.camera = engine.Camera(self.WIN_SIZE)
         self.resources = engine.Resources()
-        self.scene = engine.Scene(self.resources, self.camera, self.gl_context)
+        self.scene = engine.Scene2(self.resources, self.camera, self.gl_context)
         self.scene.initiate_resources()
         self.scene.create_objects_instances()
 
