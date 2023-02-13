@@ -84,7 +84,7 @@ class Vertexes:
     def get_cone_model(self):
         n = 30
         r = 1
-        h = 3
+        h = 1
         vertices:list[tuple[float,float,float]]= []
         vertices.append((0, h,0))
         for angle in [360/n*i for i in range(0, n)]:

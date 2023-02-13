@@ -11,12 +11,10 @@ out vec3 fragment_position;
 uniform mat4 camera_projection_matrix;
 uniform mat4 view_matrix;
 
-
 uniform vec3 scaling_factors;
 uniform mat4 shear_transform;
 uniform vec3 rotation_angles;
 uniform vec3 translation_vector;
-
 
 mat4 create_scaling(vec3 factors){
     mat4 result = mat4(0.0);
@@ -43,8 +41,8 @@ mat4 create_rotation(vec3 angles){
     x[2][2] = cos(angles[0]);
 
     y[0][0] = cos(angles[1]);
-    y[0][2] = sin(angles[1]);
-    y[2][0] = sin(angles[1])*-1;
+    y[0][2] = sin(angles[1])*-1;
+    y[2][0] = sin(angles[1]);
     y[2][2] = cos(angles[1]);
 
     z[0][0] = cos(angles[2]);
@@ -66,7 +64,6 @@ mat4 create_translation(vec3 direction){
     result[3][2]=direction[2];
     return result;
 }
-
 
 void main(){
     uv_0 = in_texture_coordinates_0;

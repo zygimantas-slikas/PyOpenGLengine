@@ -110,12 +110,10 @@ class Scene1(Scene):
 
     def create_objects_instances(self):
         mesh_2 = self.resources.meshes["wooden_cube"]
-        self.left_wall = SceneObject(mesh_2, self.light, position=self.left_wall_position)
-        self.left_wall.scale((0.1,4,0.5))
+        self.left_wall = SceneObject(mesh_2, self.light, position=self.left_wall_position, scale=(0.1,4,0.5))
 
         mesh_3 = self.resources.meshes["iron_cube"]
-        self.right_wall = SceneObject(mesh_3, self.light, position=self.right_wall_position)
-        self.right_wall.scale((0.1,4,0.5))
+        self.right_wall = SceneObject(mesh_3, self.light, position=self.right_wall_position, scale=(0.1,4,0.5))
 
         mesh_5 = self.resources.meshes["circle"]
         self.circle = SceneObject(mesh_5, self.light, position=self.circle_position)
@@ -136,7 +134,7 @@ class Scene1(Scene):
             return
         self.circle.rotate((0,0,0.005))
         self.circle.move(self.circle_moving_direction * self.circle_speed)
-        self.circle_position = self.circle.position_transform[3,:3]
+        self.circle_position = self.circle.position
         if (self.circle_position[0] +1.1 > self.right_wall_position[0]):
             share_transform = np.identity(4, dtype=np.float32)
             share_transform[1,0] = ((self.circle_position[0]-self.right_wall_position[0]+1.1)
@@ -151,40 +149,55 @@ class Scene2(Scene):
         super().__init__(resources, camera, gl_context)
         self.cone = None
         self.cube = None
-        self.cube_moving_direction = np.array([1,-1,-0.1], dtype=np.float32)
-        self.cube_moving_direction = self.cube_moving_direction/np.linalg.norm(self.cube_moving_direction)
+        self.step = 1
         self.cube_speed = 0.01
+        self.cone_tilt = 0.0
 
     def create_objects_instances(self):
         mesh_1 = self.resources.meshes["red_cube"]
-        self.cube = SceneObject(mesh_1, self.light, position=(0,0,0), scale=(0.4, 0.2, 0.2))
-
+        self.cube = SceneObject(mesh_1, self.light, position=(5,4,0), scale=(0.4, 0.2, 0.2))
         mesh_5 = self.resources.meshes["cone"]
-        self.cone = SceneObject(mesh_5, self.light, position=(0,0,0))
-
+        self.cone = SceneObject(mesh_5, self.light, position=(0,0,0), scale=(1, 3, 1))
         self.scene_objects.append(self.cube)
         self.scene_objects.append(self.cone)
-
         mesh_2 = self.resources.meshes["wooden_cube"]
-        for x in range(-30,30, 2):
-            for z in range(-30,30, 2):
+        for x in range(-15,15, 2):
+            for z in range(-15,15, 2):
                 object = SceneObject(mesh_2, self.light, position=(x, -1, z))
                 self.scene_objects.append(object)
 
     def update(self, time: int):
-        distance = (self.cone.position - self.cube.position)**2
+        target = self.cone.position.copy()
+        target[1] +=(self.cone.scaling[1]/2)
+        target[2] += 0.5
+        distance = (target - self.cube.position)**2
         distance = np.power(np.sum(distance), 1/2)
-        if (distance > 2):
-            scaler = (2+math.sin(math.radians(time*100)))/4
-            self.cube.scale = (2*scaler,scaler,scaler)
-            self.cube.move(self.cube_moving_direction*self.cube_speed)
-        # else :
-        #     self.cube.set_position((0,0,0))
-        #     self.cube.rotate((0.1,0.1,0))
-        #     # self.cube.free_transformation = np.array([[1,1,0,0],
-        #     #                                         [0,1,0,0],
-        #     #                                         [0,0,1,0],
-        #     #                                         [0,0,0,1]])
-        #     position = self.cone_position + np.array([0,2,0])
+        if distance < 0.1:
+            self.step += 1
+        if self.step == 1:
+            movement_direction = self.cone.position - self.cube.position
+            movement_direction[1] += (self.cone.scaling[1]/2)
+            movement_direction[2] += 0.5
+            movement_direction /= np.linalg.norm(movement_direction)
+            cube_shift = movement_direction * self.cube_speed
+            self.cube.move(cube_shift)
+        else:
+            self.cone_tilt += 0.03
+            tilt_angle = math.radians(self.cone_tilt)
+            quaternion = np.array([tilt_angle, 0.0, 0.0, 1.0],dtype=np.float32)
+            self.cone.free_transformation = self.cone.rotate_around_vector(quaternion)
+
+            rot = np.array([0.00, -0.01, 0.00], dtype=np.float32)
+            self.cone.rotate(rot)
+            self.cone.position[1] = math.sin(math.radians(self.cone_tilt))
+
+            self.cube.position = np.zeros(3, dtype=np.float32)
+            cube_transform = np.identity(4, dtype=np.float32)
+            cube_transform[3,0:3] = np.array([0, 2, 0.5], dtype=np.float32)
+            cube_around_cone_rotation = self.cube.rotate_around_vector(np.array([self.cone.rotation[1], 0, 1, 0], dtype=np.float32))
+            cube_transform = cube_transform @ cube_around_cone_rotation @ self.cone.free_transformation @ cube_around_cone_rotation
+            self.cube.position[1] = math.sin(math.radians(self.cone_tilt))
+
+            self.cube.free_transformation = cube_transform
 
 

@@ -21,6 +21,26 @@ class SceneObject:
         self.rotation += rotation
         return self.rotation
 
+    def rotate_around_vector(self, quaternion:np.ndarray)->np.ndarray:
+        s = quaternion[0]
+        v = quaternion[1:]
+        v /= np.linalg.norm(v)
+        v = v * np.sin(s/2)
+        s= np.cos(s/2)
+        rotation = np.identity(4, dtype=np.float32)
+        rotation[0,0] = 1 - 2*(v[1]**2) - 2*(v[2]**2)
+        rotation[0,1] = 2*v[0]*v[1] + 2*s*v[2]
+        rotation[0,2] = 2*v[0]*v[2] - 2*s*v[1]
+
+        rotation[1,0] = 2*v[0]*v[1] - 2*s*v[2]
+        rotation[1,1] = 1 - 2*(v[0]**2) - 2*(v[2]**2)
+        rotation[1,2] = 2*v[1]*v[2] + 2*s*v[0]
+
+        rotation[2,0] = 2*v[0]*v[2] + 2*s*v[1]
+        rotation[2,1] = 2*v[1]*v[2] - 2*s*v[0]
+        rotation[2,2] = 1 - 2*(v[0]**2) - 2*(v[1]**2)
+        return rotation
+
     def move(self, offset:np.ndarray)->np.ndarray:
         self.position += offset
         return self.position
