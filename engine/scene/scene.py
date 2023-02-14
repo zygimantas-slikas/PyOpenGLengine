@@ -147,6 +147,7 @@ class Scene1(Scene):
 class Scene2(Scene):
     def __init__(self, resources:Resources, camera:Camera, gl_context:mgl.Context):
         super().__init__(resources, camera, gl_context)
+        
         self.cone = None
         self.cube = None
         self.step = 1
@@ -200,4 +201,41 @@ class Scene2(Scene):
 
             self.cube.free_transformation = cube_transform
 
+class Scene3(Scene):
+    def __init__(self, resources:Resources, camera:Camera, gl_context:mgl.Context):
+        super().__init__(resources, camera, gl_context)
+        self.fan_scaling = 0.001
+        self.fan_rotation = 0.01
+
+    def initiate_resources(self):
+        super().initiate_resources()
+        vertexes = mesh.Vertexes(self.gl_context)
+        vertexes.model_data = vertexes.get_fan_model()
+        vertexes.allocate_vertex_buffer(vertexes.model_data)
+        self.resources.vertexes["fan"] = vertexes
+        texture = self.resources.textures["wood"]
+        shaders = self.resources.shaders["default"]
+        fan_mesh = mesh.Mesh(self.gl_context, vertexes, texture, shaders)
+        fan_mesh.create_object()
+        self.resources.meshes["wooden_fan"] = fan_mesh
+
+    def create_objects_instances(self):
+        self.fan = SceneObject( self.resources.meshes["wooden_fan"],self.light,
+         position=(0,3,0), scale=(1, 1, 1))
+        self.scene_objects.append(self.fan)
+        mesh_2 = self.resources.meshes["wooden_cube"]
+        for x in range(-15,15, 2):
+            for z in range(-15,15, 2):
+                object = SceneObject(mesh_2, self.light, position=(x, -1, z))
+                self.scene_objects.append(object)
+
+    def update(self, time: int):
+        self.fan.rotate(np.array([0, 0, self.fan_rotation], dtype=np.float32))
+        self.fan.scale(np.array([self.fan_scaling, 0, self.fan_scaling], dtype=np.float32))
+        if self.fan.scaling[0] < 0.5:
+            self.fan_scaling *= -1
+            self.fan_rotation *= -1
+            self.fan.rotate(np.array([1.55, 0, 0], dtype=np.float32))
+        elif self.fan.scaling[0] > 1:
+            self.fan_scaling *= -1
 

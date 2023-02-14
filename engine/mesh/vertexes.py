@@ -109,3 +109,56 @@ class Vertexes:
         vertex_data = np.hstack([normals, vertex_data])
         model_data = np.hstack([texture_coordinates_data, vertex_data])
         return model_data
+
+    def get_fan_model(self):
+        u_count = 30
+        v_count = 70
+
+        u = [x/10 for x in range(0, u_count+1, 1)]
+        v = [x/10 for x in range(0, v_count+1, 1)]
+        points_array = np.zeros(shape=(u_count, v_count, 3), dtype=np.float32)
+        for u_index in range(u_count):
+            for v_index in range(v_count):
+                points_array[u_index, v_index, 0] = u[u_index] * math.cos(v[v_index])
+                points_array[u_index, v_index, 1] = u[u_index]
+                points_array[u_index, v_index, 2] = u[u_index] * math.sin(v[v_index])
+
+        vertices = []
+        for u_index in range(1, u_count, 1):
+            for v_index in range(0, v_count-1, 1):
+                vertices.append(points_array[u_index,v_index,:])
+                vertices.append(points_array[u_index-1,v_index+1,:])
+                vertices.append(points_array[u_index-1,v_index,:])
+
+                vertices.append(points_array[u_index,v_index,:])
+                vertices.append(points_array[u_index,v_index+1,:])
+                vertices.append(points_array[u_index-1,v_index+1,:])
+
+                vertices.append(points_array[u_index,v_index,:])
+                vertices.append(points_array[u_index-1,v_index,:])
+                vertices.append(points_array[u_index-1,v_index+1,:])
+
+                vertices.append(points_array[u_index,v_index,:])
+                vertices.append(points_array[u_index-1,v_index+1,:])
+                vertices.append(points_array[u_index,v_index+1,:])
+        vertex_data = np.array(vertices, dtype=np.float32)
+
+        texture_coordinates = [(0,0), (1,0), (1,1), (0,1)]
+        texture_coordinates_indices = []
+        for x in range((u_count-1)*(v_count-1)*2*2):
+            if x%4==0:
+                texture_coordinates_indices.append((3,1,0))
+            elif x%4==1:
+                texture_coordinates_indices.append((3,2,1))
+            elif x%4==2:
+                texture_coordinates_indices.append((3,0,1))
+            else:
+                texture_coordinates_indices.append((3,1,2))
+        texture_coordinates_data = self.combine_points(texture_coordinates, texture_coordinates_indices)
+
+        normals = [(0,0,0) * (u_count-1)*(v_count-1)*2*2*3]
+        normals = np.array(normals, dtype = np.float32).reshape((u_count-1)*(v_count-1)*2*2*3, 3)
+
+        vertex_data = np.hstack([normals, vertex_data])
+        model_data = np.hstack([texture_coordinates_data, vertex_data])
+        return model_data
