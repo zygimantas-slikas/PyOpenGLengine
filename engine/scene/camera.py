@@ -5,9 +5,11 @@ import pygame as pg
 
 
 class Camera:
-    def __init__(self, window_size:tuple[int,int], FOV=70, NEAR=0.1, FAR=100,
+    def __init__(self, window_size:tuple[int,int], FOV=np.pi*7/18, NEAR=0.1, FAR=100,
         position=(0,1,5), yaw=-90.0, pitch=0.0):
         self.FOV = FOV
+        # self.focal_distance = 8
+        # self.FOV = 2*np.arctan(2/self.focal_distance)
         self.NEAR = NEAR
         self.FAR = FAR
         self.window_size = window_size
@@ -20,16 +22,16 @@ class Camera:
         self.yaw = yaw
         self.pitch = pitch
         self.mouse_sensitivity = 0.1
-        self.view_matrix = self.get_view_matrix(self.position, self.up)
+        self.view_matrix = self.get_view_matrix(self.position)
         self.projection_matrix = self.get_projection_matrix()
         self.locked:bool = False
 
-    def update(self, delta_time)->glm.mat4:
+    def update(self, delta_time)->glm.mat4x4:
         if not self.locked:
             self.move(delta_time)
             self.get_mouse_rotation()
             self.update_camera_vectors()
-        self.view_matrix = self.get_view_matrix(self.position, self.up)
+        self.view_matrix = self.get_view_matrix(self.position)
         return self.view_matrix
 
     def move(self, delta_time):
@@ -69,10 +71,17 @@ class Camera:
         self.right = glm.normalize(glm.cross(self.forward, glm.vec3(0,1,0)))
         self.up = glm.normalize(glm.cross(self.right, self.forward))
 
-    def get_projection_matrix(self):
-        perspective_projection_to_camera_matrix = glm.perspective(
-            glm.radians(self.FOV), self.aspect_ratio, self.NEAR, self.FAR)
+    def get_projection_matrix(self) -> np.ndarray:
+        perspective_projection_to_camera_matrix = np.array(
+            [1/(1/self.aspect_ratio)*np.tan(self.FOV/2),0,0,0,
+             0,1/np.tan(self.FOV/2),0,0,
+             0,0,-1*(self.FAR+self.NEAR)/(self.FAR-self.NEAR), -1,
+             0,0,-2*self.FAR*self.NEAR/(self.FAR-self.NEAR),0
+             ], dtype=np.float32).reshape((4,4))
         return perspective_projection_to_camera_matrix
 
-    def get_view_matrix(self, position, up_vector)->glm.mat4:
-        return glm.lookAt(position, self.position + self.forward, up_vector)
+    def get_view_matrix(self, position:np.ndarray)->np.ndarray:
+        result = np.identity(4, dtype=np.float32)
+        result[:3, :3] = np.vstack([self.right, self.up, -1*self.forward]).T
+        result[3,:3] = (-1*result[:3, :3].T)@position
+        return result

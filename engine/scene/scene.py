@@ -205,7 +205,17 @@ class Scene3(Scene):
     def __init__(self, resources:Resources, camera:Camera, gl_context:mgl.Context):
         super().__init__(resources, camera, gl_context)
         self.fan_scaling = 0.001
-        self.fan_rotation = 0.01
+        self.fan_rotation = 0.005
+        
+        
+        self.project:bool = False
+        self.projection_point = np.array([1,1,1], dtype=np.float32)
+        self.projection_forward = np.array([-1,-1,-1], dtype=np.float32)
+        self.projection_right = np.cross(self.projection_forward, np.array([0,1,], dtype=np.float32))
+        self.projection_up = np.cross(self.projection_forward, self.projection_right)
+        self.projection_matrix = np.identity(4, dtype=np.float32)
+        self.projection_matrix[:3, :3] = np.vstack([self.projection_right, self.projection_up, -1*self.projection_forward]).T
+        self.projection_matrix[3,:3] = (-1*self.projection_matrix[:3, :3].T)@self.projection_point
 
     def initiate_resources(self):
         super().initiate_resources()
@@ -230,12 +240,12 @@ class Scene3(Scene):
                 self.scene_objects.append(object)
 
     def update(self, time: int):
-        self.fan.rotate(np.array([0, 0, self.fan_rotation], dtype=np.float32))
-        self.fan.scale(np.array([self.fan_scaling, 0, self.fan_scaling], dtype=np.float32))
+        self.fan.rotate(np.array([0, self.fan_rotation, 0], dtype=np.float32))
+        self.fan.scale(np.array([self.fan_scaling, self.fan_scaling, self.fan_scaling], dtype=np.float32))
         if self.fan.scaling[0] < 0.5:
             self.fan_scaling *= -1
             self.fan_rotation *= -1
-            self.fan.rotate(np.array([1.55, 0, 0], dtype=np.float32))
+            self.fan.rotate(np.array([np.pi, 0, 0], dtype=np.float32))
         elif self.fan.scaling[0] > 1:
             self.fan_scaling *= -1
 

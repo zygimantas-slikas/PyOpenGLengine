@@ -23,7 +23,7 @@ class GraphicsEngine:
         self.clock:pg.time.Clock = pg.time.Clock()
         self.time:float = 0
         self.delta_time:int = 0
-        
+
         self.camera = engine.Camera(self.WIN_SIZE)
         self.resources = engine.Resources()
         self.scene = engine.Scene3(self.resources, self.camera, self.gl_context)
@@ -36,13 +36,24 @@ class GraphicsEngine:
                 self.resources.delete()
                 pg.quit()
                 sys.exit()
+            elif event.type == pg.KEYDOWN and event.key == pg.K_1:
+                self.scene = engine.Scene1(self.resources, self.camera, self.gl_context)
+                self.scene.initiate_resources()
+                self.scene.create_objects_instances()
+            elif event.type == pg.KEYDOWN and event.key == pg.K_2:
+                self.scene = engine.Scene2(self.resources, self.camera, self.gl_context)
+                self.scene.initiate_resources()
+                self.scene.create_objects_instances()
+            elif event.type == pg.KEYDOWN and event.key == pg.K_3:
+                self.scene = engine.Scene3(self.resources, self.camera, self.gl_context)
+                self.scene.initiate_resources()
+                self.scene.create_objects_instances()
 
     def render(self):
         #resset screen
         self.gl_context.clear(color=(0.08, 0.16, 0.18))
-        #swap buffers in bouble buffer rendering
-        # self.model_1.render(self.time, self.camera)
         self.scene.render(self.time)
+        # swap buffers in bouble buffer rendering
         pg.display.flip()
 
     def get_time(self)->float:
