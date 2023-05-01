@@ -62,5 +62,5 @@ class SceneObject:
         self.mesh.shaders.program['camera_projection_matrix'].write(camera_projection_matrix)
 
     def render(self, light:light.Light, camera:camera.Camera)->None:
-        self.update(camera.view_matrix, camera.projection_matrix,camera.position)
+        self.update(camera.view_matrix, camera.projection_matrix, camera.position)
         self.mesh.render()

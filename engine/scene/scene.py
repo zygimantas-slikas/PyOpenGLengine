@@ -6,6 +6,7 @@ from .light import Light
 from .camera import Camera
 from ..allocated_resources import Resources
 from .. import mesh
+from .. import vertex_approximator
 from .scene_object import SceneObject
 import math
 
@@ -144,6 +145,7 @@ class Scene1(Scene):
                     /self.right_wall.free_transformation[1,1] > 0.5):
                 self.circle_moving_direction *= -1
 
+
 class Scene2(Scene):
     def __init__(self, resources:Resources, camera:Camera, gl_context:mgl.Context):
         super().__init__(resources, camera, gl_context)
@@ -201,12 +203,12 @@ class Scene2(Scene):
 
             self.cube.free_transformation = cube_transform
 
+
 class Scene3(Scene):
     def __init__(self, resources:Resources, camera:Camera, gl_context:mgl.Context):
         super().__init__(resources, camera, gl_context)
         self.fan_scaling = 0.001
         self.fan_rotation = 0.005
-        
         
         self.project:bool = False
         self.projection_point = np.array([1,1,1], dtype=np.float32)
@@ -249,3 +251,72 @@ class Scene3(Scene):
         elif self.fan.scaling[0] > 1:
             self.fan_scaling *= -1
 
+
+class Scene4(Scene):
+    def __init__(self, resources:Resources, camera:Camera, gl_context:mgl.Context):
+        super().__init__(resources, camera, gl_context)
+        self.project:bool = False
+        self.projection_point = np.array([1,1,1], dtype=np.float32)
+        self.projection_forward = np.array([-1,-1,-1], dtype=np.float32)
+        self.projection_right = np.cross(self.projection_forward, np.array([0,1,], dtype=np.float32))
+        self.projection_up = np.cross(self.projection_forward, self.projection_right)
+        self.projection_matrix = np.identity(4, dtype=np.float32)
+        self.projection_matrix[:3, :3] = np.vstack([self.projection_right, self.projection_up, -1*self.projection_forward]).T
+        self.projection_matrix[3,:3] = (-1*self.projection_matrix[:3, :3].T)@self.projection_point
+
+    def initiate_resources(self):
+        super().initiate_resources()
+        texture = self.resources.textures["red"]
+        shaders = self.resources.shaders["default"]
+
+        original_vertexes = mesh.Vertexes(self.gl_context)
+        original_vertexes.model_data = original_vertexes.read_stl_model(
+            "../lab3/T1/T1_1.stl")
+        original_vertexes.allocate_vertex_buffer(original_vertexes.model_data)
+        self.resources.vertexes["original_object"] = original_vertexes
+        
+        original_mesh = mesh.Mesh(self.gl_context, original_vertexes, texture, shaders)
+        original_mesh.create_object()
+        self.resources.meshes["original_red"] = original_mesh
+
+        converter = vertex_approximator.MeshConverter()
+        square_grid = converter.triangle_to_square(original_vertexes.model_data)
+        # interpolate
+        triangled_grid = converter.square_to_triangle(square_grid)
+        
+        interpolated_vertexes = mesh.Vertexes(self.gl_context)
+        interpolated_vertexes.model_data = triangled_grid
+        interpolated_vertexes.allocate_vertex_buffer(interpolated_vertexes.model_data)
+        self.resources.vertexes["interpolated_object"] = interpolated_vertexes
+
+        interpolated_mesh = mesh.Mesh(self.gl_context, interpolated_vertexes, self.resources.textures["wood"], shaders)
+        interpolated_mesh.create_object()
+        self.resources.meshes["interpolated_red"] = interpolated_mesh
+
+    def create_objects_instances(self):
+        self.original_object = SceneObject(self.resources.meshes["original_red"], self.light,
+                        position=(0,1,0), scale=(4, 4, 4))
+        self.scene_objects.append(self.original_object)
+
+        self.interpolated_object = SceneObject(self.resources.meshes["interpolated_red"], self.light,
+                        position=(2,1,2), scale=(4, 4, 4))
+        self.scene_objects.append(self.interpolated_object)
+        
+        mesh_2 = self.resources.meshes["wooden_cube"]
+        for x in range(-15,15, 2):
+            for z in range(-15,15, 2):
+                object = SceneObject(mesh_2, self.light, position=(x, -1, z))
+                self.scene_objects.append(object)
+
+    def update(self, time: int):
+        self.import_rotation = 0.005
+        self.original_object.rotate(np.array([0, self.import_rotation, 0], dtype=np.float32))
+        self.interpolated_object.rotate(np.array([0, self.import_rotation, 0], dtype=np.float32))
+        pass
+        # self.imported.scale(np.array([self.fan_scaling, self.fan_scaling, self.fan_scaling], dtype=np.float32))
+        # if self.imported.scaling[0] < 0.5:
+        #     self.fan_scaling *= -1
+        #     self.fan_rotation *= -1
+        #     self.imported.rotate(np.array([np.pi, 0, 0], dtype=np.float32))
+        # elif self.imported.scaling[0] > 1:
+        #     self.fan_scaling *= -1

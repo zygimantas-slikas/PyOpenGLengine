@@ -2,6 +2,8 @@ import numpy as np
 import moderngl as mgl
 import glm
 import math
+import struct
+
 
 class Vertexes:
     def __init__(self, gl_context:mgl.Context):
@@ -26,7 +28,7 @@ class Vertexes:
         array = np.array(points_list, dtype=np.float32)
         return array
 
-    def get_cube_model(self):
+    def get_cube_model(self)->np.ndarray:
         vertices = [(-1,-1,1), (1,-1,1), (1,1,1), (-1,1,1),
                     (-1,1,-1), (-1,-1,-1), (1,-1,-1), (1,1,-1)]
         indices = [(0,2,3), (0,1,2),
@@ -58,7 +60,7 @@ class Vertexes:
         model_data = np.hstack([texture_coordinates_data, vertex_data])
         return model_data
 
-    def get_circle_model(self):
+    def get_circle_model(self)->np.ndarray:
         n = 30
         r = 1
         vertices:list[tuple[float,float,float]]= []
@@ -81,7 +83,7 @@ class Vertexes:
         model_data = np.hstack([texture_coordinates_data, vertex_data])
         return model_data
 
-    def get_cone_model(self):
+    def get_cone_model(self)->np.ndarray:
         n = 30
         r = 1
         h = 1
@@ -110,7 +112,7 @@ class Vertexes:
         model_data = np.hstack([texture_coordinates_data, vertex_data])
         return model_data
 
-    def get_fan_model(self):
+    def get_fan_model(self) ->np.ndarray:
         u_count = 30
         v_count = 70
 
@@ -159,6 +161,54 @@ class Vertexes:
         normals = [(0,0,0) * (u_count-1)*(v_count-1)*2*2*3]
         normals = np.array(normals, dtype = np.float32).reshape((u_count-1)*(v_count-1)*2*2*3, 3)
 
-        vertex_data = np.hstack([normals, vertex_data])
-        model_data = np.hstack([texture_coordinates_data, vertex_data])
+        model_data = np.hstack([texture_coordinates_data, normals, vertex_data])
+        return model_data
+    
+    def read_stl_model(self, file_path:str) ->np.ndarray:
+        with open(file_path, 'rb') as f:
+            M = f.read()
+        numFaces = struct.unpack_from('<I', M, 80)[0]
+        if numFaces == 0:
+            print('No data in STL file.')
+            return
+        T = M[84:]
+        F = []
+        V = []
+        N = []
+        for i in range(numFaces):
+            N.append(struct.unpack_from('<3f', T, i*50))
+            V.append(struct.unpack_from('<3f', T, i*50+12))
+            V.append(struct.unpack_from('<3f', T, i*50+24))
+            V.append(struct.unpack_from('<3f', T, i*50+36))
+            F.append([3*i, 3*i+1, 3*i+2])
+
+        vertices = []
+        normals = []
+        for face_index, face in enumerate(F):
+            for point in face:
+                vertices.append(V[point])
+            normals.append(N[face_index])
+            normals.append(N[face_index])
+            normals.append(N[face_index])
+        vertex_data = np.array(vertices, dtype=np.float32)
+        normals_data = np.array(normals, dtype=np.float32)
+        normals_data = normals_data[:, [1, 2, 0]]
+        
+        #normalize and center object
+        vertex_mins = vertex_data.min(axis=0)
+        vertex_data -= vertex_mins
+        sorted_hight = vertex_data[:, 2].argsort()
+        vertex_center = vertex_data[sorted_hight[-1], :]
+        vertex_data -= vertex_center
+        vertex_maxs = np.abs(vertex_data).max()
+        vertex_data /= vertex_maxs
+        vertex_data = vertex_data[:, [1, 2, 0]]
+        vertex_data[:, 1] -= vertex_data[:, 1].min()
+        vertex_data /= vertex_data[:, 1].max()
+
+        texture_coordinates = [(0,0), (1,0), (1,1), (0,1)]
+        texture_coordinates_indices = [(0,1,2) * int(len(F))]
+        texture_coordinates_data = self.combine_points(texture_coordinates, texture_coordinates_indices)
+        
+        model_data = np.hstack([texture_coordinates_data, normals_data, vertex_data])
         return model_data
