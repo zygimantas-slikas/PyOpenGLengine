@@ -273,7 +273,7 @@ class Scene4(Scene):
         original_vertexes.model_data = original_vertexes.read_stl_model(
             "../lab3/T1/T1_1.stl")
         original_vertexes.allocate_vertex_buffer(original_vertexes.model_data)
-        self.resources.vertexes["original_object"] = original_vertexes
+        self.resources.vertexes["original_vertexes"] = original_vertexes
         
         original_mesh = mesh.Mesh(self.gl_context, original_vertexes, texture, shaders)
         original_mesh.create_object()
@@ -281,27 +281,41 @@ class Scene4(Scene):
 
         converter = vertex_approximator.MeshConverter()
         square_grid = converter.triangle_to_square(original_vertexes.model_data)
-        # interpolate
         triangled_grid = converter.square_to_triangle(square_grid)
-        
-        interpolated_vertexes = mesh.Vertexes(self.gl_context)
-        interpolated_vertexes.model_data = triangled_grid
-        interpolated_vertexes.allocate_vertex_buffer(interpolated_vertexes.model_data)
-        self.resources.vertexes["interpolated_object"] = interpolated_vertexes
+        self.initiate_from_vertexes(triangled_grid, "approximated_vertexes", "approximated_wood")
 
-        interpolated_mesh = mesh.Mesh(self.gl_context, interpolated_vertexes, self.resources.textures["wood"], shaders)
+        lagrange = vertex_approximator.Lagrange()
+        lagrange_interpolated_grid = lagrange.interpolate(square_grid, 3)
+        lagrange_interpolated_triangles = converter.square_to_triangle(lagrange_interpolated_grid)
+        self.initiate_from_vertexes(lagrange_interpolated_triangles,
+                                     "lagrange_vertexes", "lagrange_wood")
+
+
+    def initiate_from_vertexes(self, vertexes_array:np.ndarray, vertex_name:str, mesh_name:str) -> None:
+        interpolated_vertexes = mesh.Vertexes(self.gl_context)
+        interpolated_vertexes.model_data = vertexes_array
+        interpolated_vertexes.allocate_vertex_buffer(interpolated_vertexes.model_data)
+        self.resources.vertexes[vertex_name] = interpolated_vertexes
+        shaders = self.resources.shaders["default"]
+        interpolated_mesh = mesh.Mesh(self.gl_context, interpolated_vertexes, 
+                                      self.resources.textures["wood"], shaders)
         interpolated_mesh.create_object()
-        self.resources.meshes["interpolated_red"] = interpolated_mesh
+        self.resources.meshes[mesh_name] = interpolated_mesh
 
     def create_objects_instances(self):
         self.original_object = SceneObject(self.resources.meshes["original_red"], self.light,
                         position=(0,1,0), scale=(4, 4, 4))
         self.scene_objects.append(self.original_object)
 
-        self.interpolated_object = SceneObject(self.resources.meshes["interpolated_red"], self.light,
+        self.approximated_object = SceneObject(self.resources.meshes["approximated_wood"], self.light,
                         position=(2,1,2), scale=(4, 4, 4))
-        self.scene_objects.append(self.interpolated_object)
+        self.scene_objects.append(self.approximated_object)
         
+        self.lagrange_object = SceneObject(self.resources.meshes["lagrange_wood"], self.light,
+                        position=(3,1,3), scale=(4, 4, 4))
+        self.scene_objects.append(self.lagrange_object)
+
+
         mesh_2 = self.resources.meshes["wooden_cube"]
         for x in range(-15,15, 2):
             for z in range(-15,15, 2):
@@ -311,7 +325,8 @@ class Scene4(Scene):
     def update(self, time: int):
         self.import_rotation = 0.005
         self.original_object.rotate(np.array([0, self.import_rotation, 0], dtype=np.float32))
-        self.interpolated_object.rotate(np.array([0, self.import_rotation, 0], dtype=np.float32))
+        self.approximated_object.rotate(np.array([0, self.import_rotation, 0], dtype=np.float32))
+        self.lagrange_object.rotate(np.array([0, self.import_rotation, 0], dtype=np.float32))
         pass
         # self.imported.scale(np.array([self.fan_scaling, self.fan_scaling, self.fan_scaling], dtype=np.float32))
         # if self.imported.scaling[0] < 0.5:
