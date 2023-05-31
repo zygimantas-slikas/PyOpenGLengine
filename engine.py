@@ -26,7 +26,7 @@ class GraphicsEngine:
 
         self.camera = engine.Camera(self.WIN_SIZE)
         self.resources = engine.Resources()
-        self.scene = engine.Scene4(self.resources, self.camera, self.gl_context)
+        self.scene = engine.Scene5(self.resources, self.camera, self.gl_context)
         self.scene.initiate_resources()
         self.scene.create_objects_instances()
 
@@ -50,6 +50,10 @@ class GraphicsEngine:
                 self.scene.create_objects_instances()
             elif event.type == pg.KEYDOWN and event.key == pg.K_4:
                 self.scene = engine.Scene4(self.resources, self.camera, self.gl_context)
+                self.scene.initiate_resources()
+                self.scene.create_objects_instances()
+            elif event.type == pg.KEYDOWN and event.key == pg.K_5:
+                self.scene = engine.Scene5(self.resources, self.camera, self.gl_context)
                 self.scene.initiate_resources()
                 self.scene.create_objects_instances()
 

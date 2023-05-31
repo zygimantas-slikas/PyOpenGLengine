@@ -169,8 +169,8 @@ class Lagrange:
     def interpolate(self, points_grid:np.ndarray, interpolation_multiplyer:int) -> np.ndarray:
         points_grid = points_grid[:, :, -3:]
         spherical_points = self.mesh_converter.convert_to_spherical(points_grid)
-        u:np.ndarray = spherical_points[:, 1, 1]#.mean(axis=1)
-        v:np.ndarray = spherical_points[1, :, 2]#.mean(axis=0)
+        u:np.ndarray = spherical_points[:, 1, 1]
+        v:np.ndarray = spherical_points[1, :, 2]
         control_coefficients = spherical_points[:, :, 0]
         interpolated_u = self.interpolate_coordinates(u, interpolation_multiplyer)
         interpolated_v = self.interpolate_coordinates(v, interpolation_multiplyer)
@@ -196,8 +196,137 @@ class Lagrange:
         return interpolated_surface
 
 class Bezier:
-    pass
+    def __init__(self):
+        self.mesh_converter = MeshConverter()
 
+    def generate_base_functions(self, interpolation_points:np.ndarray) -> np.ndarray:
+        b0 = 1/6*(1-interpolation_points)**3
+        b1 = 1/6*(4 - 6*interpolation_points**2 + 3*interpolation_points**3)
+        b2 = 1/6*(1+3*interpolation_points+3*interpolation_points**2-3*interpolation_points**3)
+        b3 = 1/6*interpolation_points**3
+        base_coefficients = np.vstack([b0, b1, b2, b3])
+        return base_coefficients
+
+    def bernstein_polynomial(self, n, x):
+        # n - number of control points
+        # x - points at which to evaluate the polynomial in the parameter interval [0,1]
+        T = []
+        for i in range(n):
+            T.append(x.T ** (n-i+1))
+        T = np.array(T)
+        
+        if n == 3:
+            CC = np.array([[ 1, -2,  1],
+                        [-2,  2,  0],
+                        [ 1,  0,  0]])
+        elif n == 4:
+            CC = np.array([[-1,  3, -3, 1],
+                        [ 3, -6,  3, 0],
+                        [-3,  3,  0, 0],
+                        [ 1,  0,  0, 0]])
+        elif n == 5:
+            CC = np.array([[1, -4,   6,-4,1],
+                        [-4,12,-12,4 ,0],
+                        [6,-12 ,6 ,0 ,0],
+                        [-4 ,4 ,0 ,0 ,0],
+                        [1 ,0 ,0 ,0 ,0]])
+        elif n ==6:
+            CC = np.array([[-1 ,5 ,-10 ,10 ,-5 ,1],
+                        [5 ,-20 ,30 ,-20 ,5 ,0],
+                        [-10 ,30 ,-30 ,10 ,0 ,0],
+                        [10 ,-20 ,10 ,0 ,0 ,0],
+                        [-5 ,5 ,0 ,0 ,0 ,0],
+                        [1 ,0 ,0 ,0 ,0 ,0]])
+            
+        return np.dot(T, CC).T
+
+    def interpolate(self, points_grid:np.ndarray, interpolation_multiplyer:int) -> np.ndarray:
+        points_grid = np.nan_to_num(points_grid)
+        points_grid = points_grid[:, :, -3:]
+        spherical_points = self.mesh_converter.convert_to_spherical(points_grid)
+        u:np.ndarray = spherical_points[:, 1, 1]
+        v:np.ndarray = spherical_points[1, :, 2]
+        v /= np.pi*2
+        control_coefficients = spherical_points[:, :, 0]
+        # interpolated_u = self.interpolate_coordinates(u, interpolation_multiplyer)
+        # interpolated_v = self.interpolate_coordinates(v, interpolation_multiplyer)
+        bernstein_poly_u = self.bernstein_polynomial(6, u)
+        bernstein_poly_v = self.bernstein_polynomial(6, v)
+        
+        interpolated_surface = np.empty(shape=points_grid.shape, dtype=np.float32)
+        for i in range(bernstein_poly_u.shape[0]):
+            for j in range(bernstein_poly_v.shape[0]):
+                point_value = bernstein_poly_u[:, i] @ bernstein_poly_v[j, :] 
+                interpolated_surface[i, j, 0] = point_value * control_coefficients[i, j]
+                # interpolated_surface[i, j, 1] = point_value * spherical_points[i, j, 1]
+                # interpolated_surface[i, j, 2] = point_value * spherical_points[i, j, 2]
+        interpolated_surface[:, :, 1] = spherical_points[:, :, 1]
+        interpolated_surface[:, :, 2] = spherical_points[:, :, 2]
+        
+        normals = np.zeros(shape=spherical_points.shape, dtype=np.float32)
+        interpolated_surface = np.concatenate([normals, interpolated_surface], axis=2)
+        interpolated_surface = self.mesh_converter.convert_to_euclidean(interpolated_surface)
+        return interpolated_surface
 
 class BSpline:
-    pass
+    def __init__(self):
+        self.mesh_converter = MeshConverter()
+
+    def generate_base_functions(self, interpolation_points:np.ndarray) -> np.ndarray:
+        b0 = 1/6*(1-interpolation_points)**3
+        b1 = 1/6*(4 - 6*interpolation_points**2 + 3*interpolation_points**3)
+        b2 = 1/6*(1+3*interpolation_points+3*interpolation_points**2-3*interpolation_points**3)
+        b3 = 1/6*interpolation_points**3
+        base_coefficients = np.vstack([b0, b1, b2, b3])
+        return base_coefficients
+
+    def interpolate_coordinates(self, control_points:np.ndarray, multiplyer:int) -> np.ndarray:
+        new_lenght = (control_points.shape[0] -1)* multiplyer + 1
+        new_points = np.empty(shape=(new_lenght), dtype=np.float32)
+        for index, position in enumerate(range(0, new_lenght-1, multiplyer)):
+            interpolated_coordinates = np.linspace(control_points[index], 
+                                    control_points[index+1], multiplyer+1)
+            new_points[position:position+multiplyer] = interpolated_coordinates[:-1]
+        new_points[-1] = control_points[-1]
+        return new_points
+
+    def interpolate(self, points_grid:np.ndarray, interpolation_multiplyer:int) -> np.ndarray:
+        points_grid = np.nan_to_num(points_grid)
+        points_grid = points_grid[:, :, -3:]
+        spherical_points = self.mesh_converter.convert_to_spherical(points_grid)
+        u:np.ndarray = spherical_points[:, 1, 1]
+        v:np.ndarray = spherical_points[1, :, 2]
+        control_coefficients = spherical_points[:, :, 0]
+        interpolated_u = self.interpolate_coordinates(u, interpolation_multiplyer)
+        interpolated_v = self.interpolate_coordinates(v, interpolation_multiplyer)
+
+        old_size = (u.shape[0], v.shape[0])
+        new_size = (interpolated_u.shape[0], interpolated_v.shape[0])
+        interpolated_surface = np.empty(shape=new_size, dtype=np.float32)
+        for i, new_i in enumerate(range(0, new_size[0]-interpolation_multiplyer, interpolation_multiplyer)):
+            for j, new_j in enumerate(range(0, new_size[1]-interpolation_multiplyer, interpolation_multiplyer)):
+                inter_points = [x/interpolation_multiplyer for x in range(0, interpolation_multiplyer+1)]
+                inter_points = np.array(inter_points, dtype=np.float32)
+                u_inter_points = interpolated_u[new_i:new_i+interpolation_multiplyer+1]
+                u_base = self.generate_base_functions(inter_points)
+                v_inter_points = interpolated_v[new_j:new_j+interpolation_multiplyer+1]
+                v_base = self.generate_base_functions(inter_points)
+
+                u_control_points_index = [i-1, i, (i+1)%old_size[0], (i+2)%old_size[0]]
+                v_control_points_index = [j-1, j, (j+1)%old_size[0], (j+2)%old_size[0]]
+                control_grid = spherical_points[u_control_points_index,:, :]
+                control_grid = control_grid[:,  v_control_points_index, 0]
+                inter_patch = np.zeros(shape=(interpolation_multiplyer+1,
+                                interpolation_multiplyer+1), dtype=np.float32)
+                for k in range(u_base.shape[0]):
+                    for l in range(v_base.shape[0]):
+                        inter_patch += (u_base[k, :].reshape((-1, 1)) *
+                                    v_base[l, :] * control_grid[k, l])
+                interpolated_surface[new_i:new_i+interpolation_multiplyer+1,
+                            new_j:new_j+interpolation_multiplyer+1] = inter_patch
+        u, v = np.meshgrid(interpolated_v, interpolated_u)
+        interpolated_surface = np.stack([interpolated_surface, v, u], axis=2)
+        normals = np.zeros(shape=interpolated_surface.shape, dtype=np.float32)
+        interpolated_surface = np.concatenate([normals, interpolated_surface], axis=2)
+        interpolated_surface = self.mesh_converter.convert_to_euclidean(interpolated_surface)
+        return interpolated_surface

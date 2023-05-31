@@ -6,9 +6,10 @@ from .light import Light
 from .camera import Camera
 from ..allocated_resources import Resources
 from .. import mesh
-from .. import vertex_approximator
+from ..mesh import vertex_approximator
 from .scene_object import SceneObject
 import math
+from .skeleton import Bone, Skeleton
 
 
 class Scene:
@@ -281,14 +282,27 @@ class Scene4(Scene):
 
         converter = vertex_approximator.MeshConverter()
         square_grid = converter.triangle_to_square(original_vertexes.model_data)
-        triangled_grid = converter.square_to_triangle(square_grid)
+        triangled_grid = converter.square_to_triangle(square_grid.copy())
         self.initiate_from_vertexes(triangled_grid, "approximated_vertexes", "approximated_wood")
 
         lagrange = vertex_approximator.Lagrange()
-        lagrange_interpolated_grid = lagrange.interpolate(square_grid, 3)
+        lagrange_interpolated_grid = lagrange.interpolate(square_grid.copy(), 3)
         lagrange_interpolated_triangles = converter.square_to_triangle(lagrange_interpolated_grid)
         self.initiate_from_vertexes(lagrange_interpolated_triangles,
                                      "lagrange_vertexes", "lagrange_wood")
+
+        bezier = vertex_approximator.Bezier()
+        bezier_interpolated_grid = bezier.interpolate(square_grid.copy(), 2)
+        bezier_interpolated_triangles = converter.square_to_triangle(bezier_interpolated_grid)
+        self.initiate_from_vertexes(bezier_interpolated_triangles,
+                                     "bezier_vertexes", "bezier_wood")
+
+        b_spline = vertex_approximator.BSpline()
+        b_spline_interpolated_grid = b_spline.interpolate(square_grid, 2)
+        b_spline_interpolated_triangles = converter.square_to_triangle(b_spline_interpolated_grid)
+        self.initiate_from_vertexes(b_spline_interpolated_triangles,
+                                     "b_spline_vertexes", "b_spline_wood")
+
 
 
     def initiate_from_vertexes(self, vertexes_array:np.ndarray, vertex_name:str, mesh_name:str) -> None:
@@ -315,6 +329,13 @@ class Scene4(Scene):
                         position=(3,1,3), scale=(4, 4, 4))
         self.scene_objects.append(self.lagrange_object)
 
+        self.bezier_object = SceneObject(self.resources.meshes["bezier_wood"], self.light,
+                        position=(4,1,4), scale=(4, 4, 4))
+        self.scene_objects.append(self.bezier_object)
+
+        self.b_spline_object = SceneObject(self.resources.meshes["b_spline_wood"], self.light,
+                        position=(5,1,5), scale=(4, 4, 4))
+        self.scene_objects.append(self.b_spline_object)
 
         mesh_2 = self.resources.meshes["wooden_cube"]
         for x in range(-15,15, 2):
@@ -326,7 +347,8 @@ class Scene4(Scene):
         self.import_rotation = 0.005
         self.original_object.rotate(np.array([0, self.import_rotation, 0], dtype=np.float32))
         self.approximated_object.rotate(np.array([0, self.import_rotation, 0], dtype=np.float32))
-        self.lagrange_object.rotate(np.array([0, self.import_rotation, 0], dtype=np.float32))
+        # self.lagrange_object.rotate(np.array([0, self.import_rotation, 0], dtype=np.float32))
+        # self.b_spline_object.rotate(np.array([0, self.import_rotation, 0], dtype=np.float32))
         pass
         # self.imported.scale(np.array([self.fan_scaling, self.fan_scaling, self.fan_scaling], dtype=np.float32))
         # if self.imported.scaling[0] < 0.5:
@@ -335,3 +357,31 @@ class Scene4(Scene):
         #     self.imported.rotate(np.array([np.pi, 0, 0], dtype=np.float32))
         # elif self.imported.scaling[0] > 1:
         #     self.fan_scaling *= -1
+
+
+class Scene5(Scene):
+    def __init__(self, resources:Resources, camera:Camera, gl_context:mgl.Context):
+        super().__init__(resources, camera, gl_context)
+        
+        self.cone = None
+        self.cube = None
+        self.step = 1
+        self.cube_speed = 0.01
+        self.cone_tilt = 0.0
+
+    def create_objects_instances(self):
+        mesh_5 = self.resources.meshes["cone"]
+        self.skeleton = Skeleton(mesh_5, self.light, (0,0,0))
+        for object in self.skeleton.scene_objects:
+            self.scene_objects.append(object)
+
+        # self.cone = SceneObject(mesh_5, self.light, position=(0,0,0), scale=(1, 3, 1))
+        # self.scene_objects.append(self.cone)
+        mesh_2 = self.resources.meshes["wooden_cube"]
+        for x in range(-15,15, 2):
+            for z in range(-15,15, 2):
+                object = SceneObject(mesh_2, self.light, position=(x, -1, z))
+                self.scene_objects.append(object)
+
+    def update(self, time: int):
+        self.skeleton.update(time)
