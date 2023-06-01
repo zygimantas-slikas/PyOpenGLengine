@@ -272,7 +272,7 @@ class Scene4(Scene):
 
         original_vertexes = mesh.Vertexes(self.gl_context)
         original_vertexes.model_data = original_vertexes.read_stl_model(
-            "../lab3/T1/T1_1.stl")
+            "objects/T1_1.stl")
         original_vertexes.allocate_vertex_buffer(original_vertexes.model_data)
         self.resources.vertexes["original_vertexes"] = original_vertexes
         
